@@ -1,5 +1,6 @@
 from lxml import etree
 import re
+from ftplib import FTP
 
 def Compare(Reference, Filename):
     """Compares local XML file with FTP XML file"""
@@ -43,10 +44,23 @@ def Compare(Reference, Filename):
     except Exception as e:
         print(f"Error occurred during comparison: {e}")
         return False
-    
+def GetFile(ftp_host):
+    # Connect to FTP server
+    ftp_user = "Administrator"
+    ftp_pass = "1"
+    ftp = FTP(ftp_host)
+    ftp.login(user=ftp_user, passwd=ftp_pass)
+    print("Connected to FTP server.")
+
+    # List files in the directory (optional)
+    print("Files on the server:")
+    ftp.retrlines('LIST')
+
 def main():
     print("program start")
-    Local_File = "Movements.xml"
+    #CONNECT TO THE MACHINE BIA FTP
+    IP_Address = "137.180.153.11" # TO BE REDACTED BEFORE UPLOADING TO GITHUB
+    Local_File = GetFile(IP_Address)
     Machine_File = "Movements_.xml"
     print("call of Compare")
 
