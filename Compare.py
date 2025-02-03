@@ -1,6 +1,7 @@
 from lxml import etree
 import re
 from ftplib import FTP,error_perm
+import paramiko 
 
 def Compare(Reference, Filename):
     """Compares local XML file with FTP XML file"""
@@ -54,6 +55,7 @@ def GetFile(ftp_host):
     # Get to the directory of the file
     Dir = input("State the Directory of target file: ")
     try:
+        #EN VEZ DE SELECCIONAR EL ARCHIVO EN EL SERVIDOR, SERIA MEJOR SELECCIONAR EL ARCHIVO LOCAL Y HACER MATCH POR NOMBRE CON LOS ARCHIVOS DE LAS MAQUINAS. ASI SE EVITA EL FIRSTFILE Y DESPUËS COMPARAR TODOS LOS DEMAS.
         ftp.cwd(Dir)
         print("Files on the server:")
         ftp.retrlines('LIST')  # List files in the directory
@@ -75,14 +77,21 @@ def GetFile(ftp_host):
         print(f"Directory '{Dir}' is invalid or inaccessible. Error: {e}")
         ftp.quit()
         return None
-    
+def SFTP_GETFILE(SFTP_Host):
+    Client = paramiko.SFTPClient(22)
+    Directory = Client.getcwd
+    print(f"Here is the Current Directory: {Directory}")
+
+      
 def main():
     print("program start")
     #CONNECT TO THE MACHINE BIA FTP
     IP_Address = "IP_Address" # Add MAchine IP
     Local_File = "Filename"#Local File name
     Machine_File = GetFile(IP_Address)
-    print("call of Compare")
+    IP = "127.0.0.1" #GET A WORKING IP ADDRESS
+
+    SFTP_GETFILE(IP)
 
     #GET THE FILE FROM FTP CONNECTION
 
@@ -99,7 +108,7 @@ def main():
     # ESCAPE INVALID BRACHETS 
     xml_content_M = re.sub(r'<([^>]+)\[([^\]]+)\]>', r'<\1\2>', xml_content_M)
 
-    Compare(xml_content_L, xml_content_M)
+    #Compare(xml_content_L, xml_content_M)
 
 
 if __name__ == "__main__":
