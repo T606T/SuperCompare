@@ -1,17 +1,27 @@
 from lxml import etree
 import re
 from ftplib import FTP,error_perm
-import paramiko 
+import paramiko
+import tkinter as tk
+from tkinter import filedialog
+import sys
 
-def Compare(Reference, Filename):
+def open_file_explorer():
+    root = tk.Tk()
+    root.withdraw()
+    file_path = filedialog.askopenfilename()
+    return file_path
+
+def Compare(Local, Machine):
     """Compares local XML file with FTP XML file"""
+    ErrorLines = []
     #print("compare initia")
     try:
-        if(isinstance(Reference,str) and isinstance(Filename,str)):
+        if(isinstance(Local,str) and isinstance(Machine,str)):
             # Parse the local file using lxml
             try:
-                Local_Root = etree.fromstring(Reference)
-                Machine_Root = etree.fromstring(Filename)
+                Local_Root = etree.fromstring(Local)
+                Machine_Root = etree.fromstring(Machine)
             except etree.XMLSyntaxError as e:
                 print(f"XML Parsing error: {e}")
                 print("Ensure that the input XML strings are formatted right.")
@@ -20,9 +30,9 @@ def Compare(Reference, Filename):
             Machine_Tree = etree.ElementTree(Machine_Root)
 
         else:
-            Local_Tree = etree.ElementTree(Reference)
+            Local_Tree = etree.ElementTree(Local)
             Local_Root = Local_Tree.getroot()
-            Machine_Tree = etree.ElementTree(Filename)
+            Machine_Tree = etree.ElementTree(Machine)
             Machine_Root = Machine_Tree.getroot()
 # FIX COMPARE FUNCTION
         for element in Local_Root.iter():
@@ -34,9 +44,11 @@ def Compare(Reference, Filename):
                 Machine_Element = None
                 continue
             if element.text != Machine_Element.text:
-                print(f"Parent: {element.getparent()} Tag:{element.tag}, Machine Value: {Machine_Element.text} Local Value: {element.text}")
-                print(f"Line of mismatch: {element.sourceline}")
+                #print(f"Parent: {element.getparent()} Tag:{element.tag}, Machine Value: {Machine_Element.text} Local Value: {element.text}")
+                #print(f"Line of mismatch: {element.sourceline}")
+                ErrorLines.append(element.sourceline)
 
+        print(f"ErrorLines: {ErrorLines}")
     except etree.XMLSyntaxError as e:
         print(f"XML Syntax error: {e}")
         return False
@@ -77,36 +89,77 @@ def GetFile(ftp_host):
         print(f"Directory '{Dir}' is invalid or inaccessible. Error: {e}")
         ftp.quit()
         return None
-def SFTP_GETFILE(SFTP_Host):
-    Client = paramiko.SFTPClient(22)
-    Directory = Client.getcwd
-    print(f"Here is the Current Directory: {Directory}")
+def SFTP_GETFILE(SFTP_Host, Filename):
+    port = 20022
+    username = "+++++++++"
+    password = "+++++++++"
+    Client = paramiko.SSHClient()
+    Client.set_missing_host_key_policy(paramiko.AutoAddPolicy()) #Accept unknown keys from machine
+    try:
+        Client.connect(SFTP_Host,port,username,password)
+        SFTP = Client.open_sftp()
+        #ASK FOR LOCAL FILE
+        #tkinter.Tk().withdraw()
+        Local_File = open_file_explorer() #xml reference in local machine
+        if Local_File:
+           print("Selected file:",Local_File)
+        else:
+            print("No file selected")
+        # OPEN THE XML FILE
+        with open(Local_File, 'r', encoding='utf-8') as L:
+            xml_content_L = L.read()
+         # ESCAPE INVALID BRACHETS 
+        xml_content_L = re.sub(r'<([^>]+)\[([^\]]+)\]>', r'<\1\2>', xml_content_L)
+
+        #GET FILE FROM Machine
+        #Check if the D: drive is accessible
+        try:
+            File_Directory = 'Config/' #Get Directory from USER
+            SFTP.chdir(File_Directory)
+        except Exception as e:
+            print(f"Failed to access {File_Directory}", str(e))
+            sys.exit(1)
+        #GET FILE    
+        with SFTP.open(Filename,mode='r') as M:
+            xml_content_M = M.read().decode('utf-8')
+        # ESCAPE INVALID BRACHETS 
+        xml_content_M = re.sub(r'<([^>]+)\[([^\]]+)\]>', r'<\1\2>', xml_content_M)
+
+        #COMPARE FILES
+        Compare(xml_content_L,xml_content_M)
+        SFTP.close()
+        
+
+    except paramiko.AuthenticationException:
+        print("Authentication failed. Check your username/password.")
+    except paramiko.SSHException as e:
+        print(f"SSH connection error: {e}")
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+    finally:
+        Client.close()
+        print("Connection closed.")
+
 
       
 def main():
     print("program start")
     #CONNECT TO THE MACHINE BIA FTP
-    IP_Address = "IP_Address" # Add MAchine IP
-    Local_File = "Filename"#Local File name
-    Machine_File = GetFile(IP_Address)
-    IP = "127.0.0.1" #GET A WORKING IP ADDRESS
+    File = "example.xml" #Local File name
+    IP = "++++++++" #GET A WORKING IP ADDRESS
+    Machine_File = SFTP_GETFILE(IP,File)
+    Fleet = 3
+    for i in range(Fleet): 
+        #COMPARE FILES AND INCREASE IP address
 
-    SFTP_GETFILE(IP)
+    #SFTP_GETFILE(IP)
 
     #GET THE FILE FROM FTP CONNECTION
 
-    # OPEN THE XML FILE
-    with open(Local_File, 'r', encoding='utf-8') as L:
-        xml_content_L = L.read()
-
-    # ESCAPE INVALID BRACHETS 
-    xml_content_L = re.sub(r'<([^>]+)\[([^\]]+)\]>', r'<\1\2>', xml_content_L)
+    
 
    # with open(Machine_File, 'r', encoding='utf-8') as M:
-    xml_content_M = Machine_File
-
-    # ESCAPE INVALID BRACHETS 
-    xml_content_M = re.sub(r'<([^>]+)\[([^\]]+)\]>', r'<\1\2>', xml_content_M)
+    
 
     #Compare(xml_content_L, xml_content_M)
 
