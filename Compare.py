@@ -7,15 +7,15 @@ from tkinter import filedialog
 import sys
 
 def open_file_explorer():
+    """Opens a file explorer dialog and returns the selected file path."""                                                                        
     root = tk.Tk()
     root.withdraw()
     file_path = filedialog.askopenfilename()
     return file_path
 
 def Compare(Local, Machine):
-    """Compares local XML file with FTP XML file"""
+    """Compares local XML file with remote XML file and returns differing lines."""
     ErrorLines = []
-    #print("compare initia")
     try:
         if(isinstance(Local,str) and isinstance(Machine,str)):
             # Parse the local file using lxml
@@ -146,22 +146,17 @@ def main():
     print("program start")
     #CONNECT TO THE MACHINE BIA FTP
     File = "example.xml" #Local File name
-    IP = "++++++++" #GET A WORKING IP ADDRESS
-    Machine_File = SFTP_GETFILE(IP,File)
-    Fleet = 3
-    for i in range(Fleet): 
-        #COMPARE FILES AND INCREASE IP address
+    RootIP= "IPaddress" #GET A WORKING IP ADDRESS
 
-    #SFTP_GETFILE(IP)
-
-    #GET THE FILE FROM FTP CONNECTION
-
-    
-
-   # with open(Machine_File, 'r', encoding='utf-8') as M:
-    
-
-    #Compare(xml_content_L, xml_content_M)
+    IPlist = RootIP.split('.')  # Convert IP into list of strings
+    last_segment = int(IPlist[-1])  # Convert last segment to integer
+    Fleet = 15
+    for i in range(Fleet):
+        IPlist[-1] = str(last_segment + i)  # Increment from the original value
+        new_hostname = '.'.join(IPlist)  # Reconstruct the IP
+         #COMPARE FILES AND INCREASE IP address through SSH 
+        SFTP_GETFILE(new_hostname,File)
+       
 
 
 if __name__ == "__main__":
